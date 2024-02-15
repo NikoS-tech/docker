@@ -12,3 +12,7 @@ mysql/*
 
 configs/nginx/*
 !configs/nginx/app.conf.example
+
+# GITKEEP
+
+!.gitkeep
