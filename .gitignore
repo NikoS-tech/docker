@@ -1,0 +1,14 @@
+# VOLUMES
+
+projects/*
+mysql/*
+
+# GLOBAL ENV
+
+.env
+!.env.example
+
+# NGINX CONFIGS
+
+configs/nginx/*
+!configs/nginx/app.conf.example

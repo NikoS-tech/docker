@@ -1,0 +1,99 @@
+version: '3'
+services:
+
+  #PHP Service
+  app:
+    build:
+      context: .
+      dockerfile: ./dockerfiles/app.dockerfile
+      args:
+        OS_VERSION_ARG: ${OS_VERSION:-22.04}
+        PHP_VERSION_ARG: ${PHP_VERSION:-7.4}
+    image: projects/php
+    container_name: app
+    restart: unless-stopped
+    tty: true
+    working_dir: /var/www
+    volumes:
+      - ./projects:/var/www
+      - ./configs/php/custom.ini:/etc/php/${PHP_VERSION}/cli/conf.d/custom.ini
+    networks:
+      - app-network
+
+  #Node Service
+  node:
+    image: node:${NODE_VERSION:-16}-alpine
+    container_name: node
+    restart: unless-stopped
+    tty: true
+    working_dir: /var/www
+    volumes:
+      - ./projects:/var/www
+    networks:
+      - app-network
+
+  #FPM Service
+  fpm:
+    build:
+      context: .
+      dockerfile: ./dockerfiles/fpm.dockerfile
+      args:
+        PHP_VERSION_ARG: ${PHP_VERSION:-7.4}
+    image: projects-fpm/php
+    container_name: fpm
+    restart: unless-stopped
+    tty: true
+    working_dir: /var/www
+    volumes:
+      - ./projects:/var/www
+      - ./configs/php/fpm.conf:/etc/php/${PHP_VERSION}/fpm/pool.d/www.conf
+    networks:
+      - app-network
+
+  #Nginx Service
+  webserver:
+    image: nginx:alpine
+    container_name: webserver
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./projects:/var/www
+      - ./configs/nginx:/etc/nginx/conf.d
+    networks:
+      - app-network
+
+  #MySQL Service
+  db:
+    image: mysql:${SQL_VERSION:-5.7.22}
+    container_name: db
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "3336:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${SQL_ROOT_PASSWORD}
+    volumes:
+      - ./mysql:/var/lib/mysql/
+      - ./configs/mysql/my.cnf:/etc/mysql/my.cnf
+    networks:
+      - app-network
+
+  phpmyadmin:
+    image: phpmyadmin
+    container_name: phpmyadmin
+    restart: unless-stopped
+    ports:
+      - '8090:80'
+    environment:
+      - PMA_HOST=db
+      - UPLOAD_LIMIT=300M
+    networks:
+      - app-network
+
+#Docker Networks
+networks:
+  app-network:
+    driver: bridge
